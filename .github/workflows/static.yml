@@ -1,28 +1,19 @@
-# Simple workflow for deploying static content to GitHub Pages
 name: Deploy static content to Pages
-
 on:
-  # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  # Single deploy job since we're just deploying
   deploy:
     environment:
       name: github-pages
@@ -31,13 +22,43 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # Create analytics scripts
+      - name: Generate Analytics Scripts
+        run: |
+          # Create a temporary index file
+          cp index.html temp_index.html
+          
+          # Create the analytics scripts to inject
+          ANALYTICS="    <!-- Sentry -->
+              <script
+                src=\"https://js.sentry-cdn.com/${{ secrets.SENTRY_KEY }}.min.js\"
+                crossorigin=\"anonymous\"
+              ></script>
+              
+              <!-- Google Analytics -->
+              <script async src=\"https://www.googletagmanager.com/gtag/js?id=${{ secrets.GA_MEASUREMENT_ID }}\"></script>
+              <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${{ secrets.GA_MEASUREMENT_ID }}');
+              </script>"
+          
+          # Insert analytics scripts before </head>
+          sed -i "s|</head>|$ANALYTICS\n</head>|" temp_index.html
+          
+          # Replace original index with modified version
+          mv temp_index.html index.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload entire repository
           path: '.'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
