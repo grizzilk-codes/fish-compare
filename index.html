@@ -625,6 +625,9 @@
             if (sessionId) {
                 currentSessionId = sessionId;
                 listenToSession(sessionId);
+            } else {
+                // Show the generate button if we're not in a shared session
+                document.getElementById('shareButton').style.display = 'inline-block';
             }
         };
 
@@ -661,6 +664,9 @@
         }
 
         function listenToSession(sessionId) {
+            // Hide the generate button since we're in a shared session
+            document.getElementById('shareButton').style.display = 'none';
+            
             database.ref('sessions/' + sessionId).on('value', (snapshot) => {
                 const data = snapshot.val();
                 if (!data) return;
