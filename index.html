@@ -444,10 +444,8 @@
 
         function getFishName(fishId) {
             try {
-                console.log(fishId);
                 return fishDatabyId[fishId].name_en || `Unknown (${fishId})`;
             } catch (e) {
-                console.error('Error getting fish name:', e);
                 return `Unknown (${fishId})`;
             }
         }
