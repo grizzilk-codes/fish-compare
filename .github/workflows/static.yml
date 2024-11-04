@@ -48,6 +48,29 @@ jobs:
           # Replace original index with modified version
           mv temp_index.html index.html
 
+      # Create and notify Sentry of release
+      - name: Create Sentry Release
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_KEY }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          RELEASE_VERSION: ${{ github.sha }}
+        run: |
+          # Install Sentry CLI
+          curl -sL https://sentry.io/get-cli/ | bash
+
+          # Create new release
+          sentry-cli releases new $RELEASE_VERSION
+          
+          # Associate commits with the release
+          sentry-cli releases set-commits $RELEASE_VERSION --auto
+          
+          # Finalize the release
+          sentry-cli releases finalize $RELEASE_VERSION
+          
+          # Tell Sentry this is deployed to production
+          sentry-cli releases deploys $RELEASE_VERSION new -e production
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
