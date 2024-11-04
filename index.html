@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completion Comparison</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #2b2b2b;
+            color: #e1e1e1;
+        }
+        h1, h2, h3 {
+            color: #c0c0c0;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .input-section {
+            flex: 1;
+            background: #333333;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border: 1px solid #444;
+        }
+        .name-input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #2b2b2b;
+            color: #e1e1e1;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 10px;
+            padding: 8px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #2b2b2b;
+            color: #e1e1e1;
+            font-family: monospace;
+        }
+        button {
+            background-color: #3a7c4f;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #4a8d5f;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .result-section {
+            background: #333333;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border: 1px solid #444;
+        }
+        .result-section h3 {
+            margin-top: 0;
+            color: #c0c0c0;
+            border-bottom: 2px solid #3a7c4f;
+            padding-bottom: 10px;
+        }
+        .result-content {
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            padding: 10px;
+            background: #2b2b2b;
+            border-radius: 4px;
+            position: relative;
+        }
+        .copy-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background-color: #444;
+            border-radius: 4px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+        .copy-icon:hover {
+            opacity: 1;
+            background-color: #555;
+        }
+        .result-content:hover .copy-icon {
+            display: flex;
+        }
+        .copy-icon svg {
+            width: 16px;
+            height: 16px;
+            fill: #e1e1e1;
+        }
+        .copy-icon.copied {
+            background-color: #3a7c4f;
+        }
+        .stats {
+            font-size: 0.9em;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        .error {
+            color: #ff6b6b;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #3d2929;
+            border-radius: 4px;
+            border: 1px solid #662929;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .filter-differences {
+            margin-top: 20px;
+            background: #333333;
+            padding: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border: 1px solid #444;
+        }
+        .filter-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            background: #2b2b2b;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .filter-table th, .filter-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+        .filter-table th {
+            background-color: #3a3a3a;
+            font-weight: bold;
+            color: #c0c0c0;
+        }
+        .filter-diff {
+            background-color: #3d3529;
+        }
+        .no-differences {
+            color: #888;
+            font-style: italic;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2b2b2b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .copy-button {
+            margin-top: 10px;
+            background-color: #444;
+            font-size: 14px;
+            padding: 8px 16px;
+        }
+        .copy-button:hover {
+            background-color: #555;
+        }
+        footer {
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid #444;
+            color: #888;
+            font-size: 0.9em;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        footer p {
+            margin: 0;
+        }
+        .collapsible {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .collapsible::before {
+            content: '>';
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        .collapsible.expanded::before {
+            transform: rotate(90deg);
+        }
+        .collapsible-content {
+            display: none;
+        }
+        .collapsible-content.expanded {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Completion Comparison</h1>
+    
+    <div class="container">
+        <div class="input-section">
+            <h2>Person 1</h2>
+            <input type="text" id="person1Name" class="name-input" placeholder="Enter name" value="Person 1">
+            <textarea id="person1" placeholder="Paste tracker code or carbuncle plushy export here"></textarea>
+        </div>
+        <div class="input-section">
+            <h2>Person 2</h2>
+            <input type="text" id="person2Name" class="name-input" placeholder="Enter name" value="Person 2">
+            <textarea id="person2" placeholder="Paste tracker code or carbuncle plushy export here"></textarea>
+        </div>
+    </div>
+
+    <button onclick="compareCompletions()">Compare</button>
+    <div class="results" id="results" style="display: none;">
+        <h2>Results</h2>
+        <div class="results-grid">
+            <div class="result-section">
+                <h3>Only in <span id="name1Display">Person 1</span>'s list:</h3>
+                <div class="stats" id="person1Stats"></div>
+                <div class="result-content">
+                    <pre id="person1Only"></pre>
+                    <div class="copy-icon" onclick="copyToClipboard('person1Only', this)" title="Copy to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M16 1H4C3 1 2 2 2 3v14h2V3h12V1zm3 4H8C7 5 6 6 6 7v14c0 1 1 2 2 2h11c1 0 2-1 2-2V7c0-1-1-2-2-2zm0 16H8V7h11v14z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="result-section">
+                <h3>Only in <span id="name2Display">Person 2</span>'s list:</h3>
+                <div class="stats" id="person2Stats"></div>
+                <div class="result-content">
+                    <pre id="person2Only"></pre>
+                    <div class="copy-icon" onclick="copyToClipboard('person2Only', this)" title="Copy to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M16 1H4C3 1 2 2 2 3v14h2V3h12V1zm3 4H8C7 5 6 6 6 7v14c0 1 1 2 2 2h11c1 0 2-1 2-2V7c0-1-1-2-2-2zm0 16H8V7h11v14z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="result-section">
+                <h3>Completed by Both:</h3>
+                <div class="stats" id="bothStats"></div>
+                <div class="result-content">
+                    <pre id="inBoth"></pre>
+                    <div class="copy-icon" onclick="copyToClipboard('inBoth', this)" title="Copy to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                            <path d="M16 1H4C3 1 2 2 2 3v14h2V3h12V1zm3 4H8C7 5 6 6 6 7v14c0 1 1 2 2 2h11c1 0 2-1 2-2V7c0-1-1-2-2-2zm0 16H8V7h11v14z"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-differences" id="filterDifferences">
+        <h2 class="collapsible" onclick="toggleCollapse(this, 'filterContent')">Filter Differences</h2>
+        <p>Filters that are different between the two people. If not using carbuncle plushy export, ignore.</p>
+        <div id="filterContent" class="collapsible-content">
+            <table class="filter-table">
+                <thead>
+                    <tr>
+                        <th>Filter</th>
+                        <th>Person 1</th>
+                        <th>Person 2</th>
+                    </tr>
+                </thead>
+                <tbody id="filterTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="error" class="error" style="display: none;"></div>
+    <script src="./static/js/fish_info_data.js"></script>
+    <script>
+        const fishDatabyId = FISH_INFO.reduce((acc, fish) => {
+            acc[fish.id] = fish;
+            return acc;
+        }, {});
+
+        function parseCompletedList(data) {
+            try {
+                // If string, parse as JSON
+                if (typeof data === 'string') {
+                    data = JSON.parse(data);
+                }
+
+                // If it's already a list, return as array
+                if (Array.isArray(data)) {
+                    return data;
+                }
+
+                // If it's an object, look for 'completed' field
+                if (typeof data === 'object' && data !== null) {
+                    if ('completed' in data) {
+                        const completed = data.completed;
+                        if (Array.isArray(completed)) {
+                            return completed;
+                        }
+                        throw new Error("'completed' field must be a list");
+                    }
+
+                    // Search nested objects
+                    for (const value of Object.values(data)) {
+                        if (typeof value === 'object' && value !== null) {
+                            try {
+                                return parseCompletedList(value);
+                            } catch (e) {
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                throw new Error("Invalid input: must be a list or contain a 'completed' field");
+            } catch (e) {
+                throw new Error(`Failed to parse completion list: ${e.message}`);
+            }
+        }
+
+        function compareFilters(data1, data2) {
+            const filters1 = data1?.filters || {};
+            const filters2 = data2?.filters || {};
+            
+            const differences = {};
+            const allKeys = new Set([...Object.keys(filters1), ...Object.keys(filters2)]);
+            
+            for (const key of allKeys) {
+                const val1 = filters1[key];
+                const val2 = filters2[key];
+                if (val1 !== val2) {
+                    differences[key] = {
+                        person1: val1,
+                        person2: val2
+                    };
+                }
+            }
+            
+            return differences;
+        }
+
+        async function compareCompletions() {
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+            const filterDifferences = document.getElementById('filterDifferences');
+            
+            results.style.display = 'none';
+            error.style.display = 'none';
+            filterDifferences.style.display = 'none';
+
+            try {
+                // Get input values
+                const person1Input = document.getElementById('person1').value;
+                const person2Input = document.getElementById('person2').value;
+                const person1Name = document.getElementById('person1Name').value || 'Person 1';
+                const person2Name = document.getElementById('person2Name').value || 'Person 2';
+
+                // Parse inputs
+                const person1Data = JSON.parse(person1Input);
+                const person2Data = JSON.parse(person2Input);
+
+                // Get completed lists
+                const person1Completed = new Set(parseCompletedList(person1Data));
+                const person2Completed = new Set(parseCompletedList(person2Data));
+
+                // Calculate differences
+                const onlyPerson1 = [...person1Completed].filter(x => !person2Completed.has(x));
+                const onlyPerson2 = [...person2Completed].filter(x => !person1Completed.has(x));
+                const inBoth = [...person1Completed].filter(x => person2Completed.has(x));
+
+                // Sort results
+                onlyPerson1.sort((a, b) => a - b);
+                onlyPerson2.sort((a, b) => a - b);
+                inBoth.sort((a, b) => a - b);
+
+                // Update name displays
+                document.getElementById('name1Display').textContent = person1Name;
+                document.getElementById('name2Display').textContent = person2Name;
+
+                // Update stats
+                document.getElementById('person1Stats').textContent = 
+                    `${onlyPerson1.length} unique fish`;
+                document.getElementById('person2Stats').textContent = 
+                    `${onlyPerson2.length} unique fish`;
+                document.getElementById('bothStats').textContent = 
+                    `${inBoth.length} shared completions`;
+
+                // Display results
+                document.getElementById('person1Only').textContent = 
+                    formatNumberList(onlyPerson1.map(id => ({id})));
+                document.getElementById('person2Only').textContent = 
+                    formatNumberList(onlyPerson2.map(id => ({id})));
+                document.getElementById('inBoth').textContent = 
+                    formatNumberList(inBoth.map(id => ({id})));
+
+                // Compare and display filter differences
+                const filterDiffs = compareFilters(person1Data, person2Data);
+                displayFilterDifferences(filterDiffs, person1Name, person2Name);
+
+                results.style.display = 'block';
+            } catch (e) {
+                error.textContent = `Error: ${e.message}`;
+                error.style.display = 'block';
+            }
+        }
+
+        function getFishName(fishId) {
+            try {
+                console.log(fishId);
+                return fishDatabyId[fishId].name_en || `Unknown (${fishId})`;
+            } catch (e) {
+                console.error('Error getting fish name:', e);
+                return `Unknown (${fishId})`;
+            }
+        }
+
+        function formatNumberList(items) {
+            if (!items.length) return 'None';
+            return items
+                .map(item => {
+                    const fishId = item.id || item;
+                    const fishName = getFishName(fishId);
+                    return `${fishName} (${fishId})`;
+                })
+                .join('\n');
+        }
+
+        function displayFilterDifferences(differences, person1Name, person2Name) {
+            const filterDiv = document.getElementById('filterDifferences');
+            const tableBody = document.getElementById('filterTableBody');
+            tableBody.innerHTML = ''; // Clear existing content
+
+            if (Object.keys(differences).length === 0) {
+                filterDiv.style.display = 'none';
+                return;
+            }
+
+            for (const [key, values] of Object.entries(differences)) {
+                const row = document.createElement('tr');
+                row.classList.add('filter-diff');
+                
+                const keyCell = document.createElement('td');
+                keyCell.textContent = key;
+                
+                const person1Cell = document.createElement('td');
+                person1Cell.textContent = formatValue(values.person1);
+                
+                const person2Cell = document.createElement('td');
+                person2Cell.textContent = formatValue(values.person2);
+                
+                row.appendChild(keyCell);
+                row.appendChild(person1Cell);
+                row.appendChild(person2Cell);
+                tableBody.appendChild(row);
+            }
+
+            filterDiv.style.display = 'block';
+        }
+
+        function formatValue(value) {
+            if (value === undefined) return '(not set)';
+            if (value === null) return '(null)';
+            if (Array.isArray(value)) return JSON.stringify(value);
+            if (typeof value === 'object') return JSON.stringify(value);
+            return value.toString();
+        }
+
+        async function copyToClipboard(elementId, iconElement) {
+            const content = document.getElementById(elementId).textContent;
+            try {
+                await navigator.clipboard.writeText(content);
+                iconElement.classList.add('copied');
+                setTimeout(() => {
+                    iconElement.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+        }
+
+        function toggleCollapse(headerElement, contentId) {
+            const contentElement = document.getElementById(contentId);
+            headerElement.classList.toggle('expanded');
+            contentElement.classList.toggle('expanded');
+        }
+    </script>
+    <footer>
+        <p>Created by Oliver Westbrooke(Goblin) for the FFXIV community.</p>
+        <p>Thank you to icykoneko/saintcoinach for the fish data and Neon Potato for the lalachievements tracking page.</p>
+        <p>FINAL FANTASY XIV © 2010 - 2024 SQUARE ENIX CO., LTD.<br>
+        FINAL FANTASY is a registered trademark of Square Enix Holdings Co., Ltd.<br>
+        All materials used under license.</p>
+    </footer>
+</body>
+</html> 
