@@ -51,7 +51,7 @@ jobs:
       # Create and notify Sentry of release
       - name: Create Sentry Release
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_KEY }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           RELEASE_VERSION: ${{ github.sha }}
