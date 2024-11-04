@@ -229,7 +229,83 @@
         .collapsible-content.expanded {
             display: block;
         }
+        #shareableLink {
+            margin: 10px 0;
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .notification {
+            background-color: #3a7c4f;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            margin: 10px 0;
+            animation: fadeIn 0.3s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #shareableLinkContainer {
+            position: relative;
+            background: #333333;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            max-width: 500px;
+        }
+
+        #shareableLinkContainer .copy-icon {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            display: flex;
+        }
+
+        #shareableLink {
+            width: calc(100% - 40px);
+            margin: 0;
+        }
+        .button-link-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        #shareableLinkContainer {
+            flex: 1;
+            min-width: 300px;
+            margin: 0;
+        }
     </style>
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-database-compat.js"></script>
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyALNLDe2iti_wFF9N2CttuurLy0NhwgUxE",
+            authDomain: "fish-compare.firebaseapp.com",
+            databaseURL: "https://fish-compare-default-rtdb.firebaseio.com",
+            projectId: "fish-compare",
+            storageBucket: "fish-compare.firebasestorage.app",
+            messagingSenderId: "336445515635",
+            appId: "1:336445515635:web:470523d92b7cd611848706",
+            measurementId: "G-SL1X17GB66"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+    </script>
 </head>
 <body>
     <h1>Completion Comparison</h1>
@@ -247,7 +323,23 @@
         </div>
     </div>
 
-    <button onclick="compareCompletions()">Compare</button>
+    <div class="button-link-container">
+        <div class="buttons">
+            <button onclick="compareCompletions()">Compare</button>
+            <button onclick="generateShareableLink()" id="shareButton">Generate Shareable Link</button>
+        </div>
+        <div class="result-content" id="shareableLinkContainer" style="display: none;">
+            <input type="text" id="shareableLink" readonly class="name-input">
+            <div class="copy-icon" onclick="copyToClipboard('shareableLink', this)" title="Copy to clipboard">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M16 1H4C3 1 2 2 2 3v14h2V3h12V1zm3 4H8C7 5 6 6 6 7v14c0 1 1 2 2 2h11c1 0 2-1 2-2V7c0-1-1-2-2-2zm0 16H8V7h11v14z"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+    <div id="updateNotification" style="display: none;" class="notification">
+        Data has been updated. Click Compare to see the new results.
+    </div>
     <div class="results" id="results" style="display: none;">
         <h2>Results</h2>
         <div class="results-grid">
@@ -381,10 +473,12 @@
             const results = document.getElementById('results');
             const error = document.getElementById('error');
             const filterDifferences = document.getElementById('filterDifferences');
+            const notification = document.getElementById('updateNotification');
             
             results.style.display = 'none';
             error.style.display = 'none';
             filterDifferences.style.display = 'none';
+            notification.style.display = 'none'; // Hide the notification when comparing
 
             try {
                 // Get input values
@@ -502,7 +596,9 @@
         }
 
         async function copyToClipboard(elementId, iconElement) {
-            const content = document.getElementById(elementId).textContent;
+            const element = document.getElementById(elementId);
+            const content = element.tagName === 'INPUT' ? element.value : element.textContent;
+            
             try {
                 await navigator.clipboard.writeText(content);
                 iconElement.classList.add('copied');
@@ -518,6 +614,144 @@
             const contentElement = document.getElementById(contentId);
             headerElement.classList.toggle('expanded');
             contentElement.classList.toggle('expanded');
+        }
+
+        let currentSessionId = null;
+
+        // Check for session ID in URL
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session');
+            if (sessionId) {
+                currentSessionId = sessionId;
+                listenToSession(sessionId);
+            }
+        };
+
+        function generateShareableLink() {
+            const sessionId = Math.random().toString(36).substring(2, 15);
+            currentSessionId = sessionId;
+            
+            // Save initial data
+            const initialData = {
+                person1: {
+                    name: document.getElementById('person1Name').value,
+                    data: document.getElementById('person1').value,
+                    userId: userId  // Add userId to identify the creator
+                },
+                person2: {
+                    name: document.getElementById('person2Name').value,
+                    data: document.getElementById('person2').value,
+                    userId: null  // Initially null for the second person
+                },
+                lastUpdate: Date.now(),
+                creator: userId
+            };
+
+            database.ref('sessions/' + sessionId).set(initialData);
+
+            // Generate and show link
+            const shareableLink = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+            const linkInput = document.getElementById('shareableLink');
+            linkInput.value = shareableLink;
+            document.getElementById('shareableLinkContainer').style.display = 'block';
+            
+            // Start listening for changes
+            listenToSession(sessionId);
+        }
+
+        function listenToSession(sessionId) {
+            database.ref('sessions/' + sessionId).on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                // Show shareable link for all users in the session
+                const shareableLink = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+                const linkInput = document.getElementById('shareableLink');
+                linkInput.value = shareableLink;
+                document.getElementById('shareableLinkContainer').style.display = 'block';
+
+                // Determine which person this user is
+                let isPerson1 = data.person1.userId === userId;
+                let isPerson2 = data.person2.userId === userId;
+                
+                // If user isn't assigned and person2 is empty, claim person2
+                if (!isPerson1 && !isPerson2 && !data.person2.userId) {
+                    database.ref(`sessions/${sessionId}/person2/userId`).set(userId);
+                    isPerson2 = true;
+                }
+
+                // Update inputs based on which person this user is
+                const person1Input = document.getElementById('person1');
+                const person2Input = document.getElementById('person2');
+                const person1Name = document.getElementById('person1Name');
+                const person2Name = document.getElementById('person2Name');
+
+                if (person1Input.value !== data.person1.data || 
+                    person2Input.value !== data.person2.data ||
+                    person1Name.value !== data.person1.name ||
+                    person2Name.value !== data.person2.name) {
+                    
+                    person1Input.value = data.person1.data;
+                    person2Input.value = data.person2.data;
+                    person1Name.value = data.person1.name;
+                    person2Name.value = data.person2.name;
+
+                    // Show notification
+                    const notification = document.getElementById('updateNotification');
+                    notification.style.display = 'block';
+                }
+
+                // Disable inputs that this user shouldn't edit
+                person1Input.disabled = !isPerson1;
+                person1Name.disabled = !isPerson1;
+                person2Input.disabled = !isPerson2;
+                person2Name.disabled = !isPerson2;
+            });
+        }
+
+        // Modify updateFirebase to only update the appropriate person's data
+        function updateFirebase() {
+            if (!currentSessionId) return;
+
+            database.ref(`sessions/${currentSessionId}`).once('value', snapshot => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                const isPerson1 = data.person1.userId === userId;
+                const isPerson2 = data.person2.userId === userId;
+                
+                const updates = {};
+                if (isPerson1) {
+                    updates.person1 = {
+                        name: document.getElementById('person1Name').value,
+                        data: document.getElementById('person1').value,
+                        userId: userId
+                    };
+                } else if (isPerson2) {
+                    updates.person2 = {
+                        name: document.getElementById('person2Name').value,
+                        data: document.getElementById('person2').value,
+                        userId: userId
+                    };
+                }
+                
+                updates.lastUpdate = Date.now();
+                database.ref(`sessions/${currentSessionId}`).update(updates);
+            });
+        }
+
+        // Add input event listeners
+        document.getElementById('person1').addEventListener('input', updateFirebase);
+        document.getElementById('person2').addEventListener('input', updateFirebase);
+        document.getElementById('person1Name').addEventListener('input', updateFirebase);
+        document.getElementById('person2Name').addEventListener('input', updateFirebase);
+
+        let userId = localStorage.getItem('userId') || generateUserId();
+        localStorage.setItem('userId', userId);
+
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substring(2, 15);
         }
     </script>
     <footer>
