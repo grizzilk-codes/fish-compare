@@ -312,6 +312,10 @@
             overflow-x: auto;
             word-wrap: normal;
         }
+        h1:hover {
+            color: #4a8d5f;
+            transition: color 0.2s;
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-database-compat.js"></script>
@@ -331,10 +335,73 @@
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
+
+        function clearSession() {
+            // Remove session from URL without refreshing
+            window.history.pushState({}, '', window.location.pathname);
+            // Reload the page
+            window.location.reload();
+        }
+
+        function updateUrlWithSession(sessionId) {
+            // Update URL without refreshing
+            window.history.pushState({}, '', `${window.location.pathname}?session=${sessionId}`);
+        }
+
+        // Modify generateShareableLink function
+        function generateShareableLink() {
+            const sessionId = Math.random().toString(36).substring(2, 15);
+            currentSessionId = sessionId;
+            
+            // Save initial data
+            const initialData = {
+                person1: {
+                    name: document.getElementById('person1Name').value,
+                    data: document.getElementById('person1').value,
+                    userId: userId
+                },
+                person2: {
+                    name: document.getElementById('person2Name').value,
+                    data: document.getElementById('person2').value,
+                    userId: null
+                },
+                lastUpdate: Date.now(),
+                creator: userId
+            };
+
+            database.ref('sessions/' + sessionId).set(initialData);
+
+            // Update URL with session ID
+            updateUrlWithSession(sessionId);
+
+            // Generate and show link
+            const shareableLink = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
+            const linkInput = document.getElementById('shareableLink');
+            linkInput.value = shareableLink;
+            document.getElementById('shareableLinkContainer').style.display = 'block';
+            
+            // Start listening for changes
+            listenToSession(sessionId);
+        }
+
+        // Add this to handle browser back/forward buttons
+        window.onpopstate = function(event) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session');
+            
+            if (sessionId) {
+                if (sessionId !== currentSessionId) {
+                    currentSessionId = sessionId;
+                    listenToSession(sessionId);
+                }
+            } else {
+                window.location.reload();
+            }
+        };
     </script>
 </head>
 <body>
-    <h1>Completion Comparison</h1>
+    <h1 onclick="clearSession()" style="cursor: pointer;">Completion Comparison</h1>
     
     <div class="container">
         <div class="input-section">
@@ -672,38 +739,6 @@
                 document.getElementById('shareButton').style.display = 'inline-block';
             }
         };
-
-        function generateShareableLink() {
-            const sessionId = Math.random().toString(36).substring(2, 15);
-            currentSessionId = sessionId;
-            
-            // Save initial data
-            const initialData = {
-                person1: {
-                    name: document.getElementById('person1Name').value,
-                    data: document.getElementById('person1').value,
-                    userId: userId  // Add userId to identify the creator
-                },
-                person2: {
-                    name: document.getElementById('person2Name').value,
-                    data: document.getElementById('person2').value,
-                    userId: null  // Initially null for the second person
-                },
-                lastUpdate: Date.now(),
-                creator: userId
-            };
-
-            database.ref('sessions/' + sessionId).set(initialData);
-
-            // Generate and show link
-            const shareableLink = `${window.location.origin}${window.location.pathname}?session=${sessionId}`;
-            const linkInput = document.getElementById('shareableLink');
-            linkInput.value = shareableLink;
-            document.getElementById('shareableLinkContainer').style.display = 'block';
-            
-            // Start listening for changes
-            listenToSession(sessionId);
-        }
 
         function listenToSession(sessionId) {
             // Hide the generate button since we're in a shared session
