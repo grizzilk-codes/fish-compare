@@ -288,6 +288,30 @@
             min-width: 300px;
             margin: 0;
         }
+        .search-container {
+            margin: 20px 0;
+            max-width: 300px;
+        }
+        
+        #resultSearch {
+            width: 100%;
+            margin: 0;
+        }
+        
+        .fish-item {
+            display: block;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .fish-item.hidden {
+            display: none;
+        }
+        .result-content pre {
+            white-space: pre;
+            overflow-x: auto;
+            word-wrap: normal;
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-database-compat.js"></script>
@@ -344,6 +368,15 @@
     </div>
     <div class="results" id="results" style="display: none;">
         <h2>Results</h2>
+        <div class="search-container">
+            <input 
+                type="text" 
+                id="resultSearch" 
+                class="name-input" 
+                placeholder="Search results..."
+                oninput="filterResults(this.value)"
+            >
+        </div>
         <div class="results-grid">
             <div class="result-section">
                 <h3>Only in <span id="name1Display">Person 1</span>'s list:</h3>
@@ -527,9 +560,16 @@
                 document.getElementById('inBoth').textContent = 
                     formatNumberList(inBoth.map(id => ({id})));
 
-                // Compare and display filter differences
                 const filterDiffs = compareFilters(person1Data, person2Data);
                 displayFilterDifferences(filterDiffs, person1Name, person2Name);
+
+                document.getElementById('resultSearch').value = '';
+                ['person1Only', 'person2Only', 'inBoth'].forEach(id => {
+                    const container = document.getElementById(id);
+                    delete container.dataset.originalContent;
+                });
+
+                filterResults('');
 
                 results.style.display = 'block';
             } catch (e) {
@@ -760,6 +800,81 @@
 
         function generateUserId() {
             return 'user_' + Math.random().toString(36).substring(2, 15);
+        }
+
+        function filterResults(searchTerm) {
+            searchTerm = searchTerm.toLowerCase();
+            
+            const containers = ['person1Only', 'person2Only', 'inBoth'];
+            
+            containers.forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (!container.dataset.originalContent) {
+                    container.dataset.originalContent = container.textContent;
+                }
+                
+                const content = container.dataset.originalContent;
+                
+                if (content.trim() === 'None') {
+                    container.innerHTML = '<pre>None</pre>';
+                    return;
+                }
+                
+                const lines = content.split('\n').filter(line => line.trim());
+                
+                container.innerHTML = '';
+                
+                const pre = document.createElement('pre');
+                pre.style.margin = '0';
+                container.appendChild(pre);
+                
+                lines.forEach(line => {
+                    if (!searchTerm || line.toLowerCase().includes(searchTerm)) {
+                        pre.appendChild(document.createTextNode(line + '\n'));
+                    }
+                });
+                
+                if (pre.lastChild) {
+                    pre.lastChild.textContent = pre.lastChild.textContent.replace(/\n$/, '');
+                }
+            });
+            
+            updateFilteredStats();
+        }
+        
+        function updateFilteredStats() {
+            const containers = [
+                { id: 'person1Only', statsId: 'person1Stats' },
+                { id: 'person2Only', statsId: 'person2Stats' },
+                { id: 'inBoth', statsId: 'bothStats' }
+            ];
+            
+            containers.forEach(({ id, statsId }) => {
+                const container = document.getElementById(id);
+                const pre = container.querySelector('pre');
+                
+                if (pre.textContent.trim() === 'None') {
+                    document.getElementById(statsId).textContent = '0 fish';
+                    return;
+                }
+                
+                const visibleLines = pre.textContent
+                    .split('\n')
+                    .filter(line => line.trim())
+                    .length;
+                
+                const totalLines = container.dataset.originalContent
+                    .split('\n')
+                    .filter(line => line.trim())
+                    .length;
+                
+                const statsElement = document.getElementById(statsId);
+                if (visibleLines === totalLines) {
+                    statsElement.textContent = `${visibleLines} fish`;
+                } else {
+                    statsElement.textContent = `${visibleLines} of ${totalLines} fish`;
+                }
+            });
         }
     </script>
     <footer>
