@@ -316,6 +316,22 @@
             color: #4a8d5f;
             transition: color 0.2s;
         }
+        header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin-bottom: 10px;
+        }
+
+        .description {
+            color: #a0a0a0;
+            font-size: 1.1em;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.4;
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-database-compat.js"></script>
@@ -401,7 +417,10 @@
     </script>
 </head>
 <body>
-    <h1 onclick="clearSession()" style="cursor: pointer;">Completion Comparison</h1>
+    <header>
+        <h1 onclick="clearSession()" style="cursor: pointer;">FFXIV Fish Completion Comparison</h1>
+        <p class="description">Compare fishing completion lists between two players. Supports data from Carbuncle Plushy and other FFXIV fishing trackers.</p>
+    </header>
     
     <div class="container">
         <div class="input-section">
